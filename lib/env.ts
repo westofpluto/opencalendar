@@ -45,7 +45,11 @@ const baseSchema = z.object({
   ENCRYPTION_KEY: base64Key32,
   ENCRYPTION_KEY_PREVIOUS: z.preprocess(emptyToUndefined, base64Key32.optional()),
 
-  SMTP_HOST: z.string().min(1),
+  EMAIL_PROVIDER: z.enum(["smtp", "resend"]).default("smtp"),
+  RESEND_API_KEY: optionalString,
+  /** Disable booking/customer mail when CRMCore owns those communications. */
+  BOOKING_EMAILS_ENABLED: booleanish(true),
+  SMTP_HOST: z.preprocess(emptyToUndefined, z.string().default("")),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
@@ -121,6 +125,12 @@ const baseSchema = z.object({
 });
 
 const schema = baseSchema.superRefine((env, ctx) => {
+  if (env.EMAIL_PROVIDER === "smtp" && !env.SMTP_HOST) {
+    ctx.addIssue({ code: "custom", path: ["SMTP_HOST"], message: "is required for EMAIL_PROVIDER=smtp" });
+  }
+  if (env.EMAIL_PROVIDER === "resend" && !env.RESEND_API_KEY) {
+    ctx.addIssue({ code: "custom", path: ["RESEND_API_KEY"], message: "is required for EMAIL_PROVIDER=resend" });
+  }
   // A hand-typed or zero-filled key is not random: refuse it in production (NFR-007).
   for (const name of ["ENCRYPTION_KEY", "ENCRYPTION_KEY_PREVIOUS"] as const) {
     const value = env[name];

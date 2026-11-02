@@ -13,6 +13,8 @@ import { errorSummary, logger } from "@/lib/logger";
  */
 export function createEmailSendHandler(deps: {
   mailer: Mailer;
+  /** Account and integration-health mail remains enabled. */
+  bookingEmailsEnabled?: boolean;
   from: string;
   cipher: Cipher;
   /** Current instance branding (ADM-011), read at send time so saved changes apply to queued mail. */
@@ -27,6 +29,13 @@ export function createEmailSendHandler(deps: {
         // Wrong key or a payload from an incompatible version: fail loudly, never silently.
         logger.error("email.invalid_payload", { jobId: job.id, ...errorSummary(error) });
         throw error;
+      }
+      const isBookingEmail = request.template.startsWith("booking-")
+        || request.template === "workflow"
+        || request.template === "reschedule-requested";
+      if (deps.bookingEmailsEnabled === false && isBookingEmail) {
+        logger.info("email.suppressed", { jobId: job.id, template: request.template });
+        continue;
       }
       const { to, ...content } = request;
       const rendered = await renderEmail(content, await deps.branding?.());

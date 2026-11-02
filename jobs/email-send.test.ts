@@ -88,3 +88,14 @@ describe("email job payload templates", () => {
     }
   });
 });
+
+describe("CRMCore-owned booking communications", () => {
+  it("suppresses queued customer mail while still sending account mail", async () => {
+    const mailer: Mailer = { send: vi.fn() };
+    const handler = createEmailSendHandler({ mailer, from: "x@x.test", cipher, bookingEmailsEnabled: false });
+    const workflow = sealEmail(cipher, { to: "a@b.test", template: "workflow", props: { subject: "Reminder", body: "Soon", bookingUrl: "https://x.test/booking" } });
+    await handler([job(workflow), job(magic(), "job-2")]);
+    expect(mailer.send).toHaveBeenCalledOnce();
+    expect(mailer.send).toHaveBeenCalledWith(expect.objectContaining({ subject: expect.stringContaining("Sign in") }));
+  });
+});

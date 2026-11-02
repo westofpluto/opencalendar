@@ -127,3 +127,15 @@ describe("parseEnv", () => {
     expect(env.oauth.google).toBeNull();
   });
 });
+
+describe("email provider configuration", () => {
+  it("allows Resend without an SMTP host", () => {
+    const env = parseEnv({ ...base, SMTP_HOST: "", EMAIL_PROVIDER: "resend", RESEND_API_KEY: "test-key", BOOKING_EMAILS_ENABLED: "false" });
+    expect(env.RESEND_API_KEY).toBe("test-key");
+    expect(env.BOOKING_EMAILS_ENABLED).toBe(false);
+  });
+  it("requires the selected provider's credentials", () => {
+    expect(() => parseEnv({ ...base, EMAIL_PROVIDER: "resend" })).toThrow(/RESEND_API_KEY/);
+    expect(() => parseEnv({ ...base, SMTP_HOST: "" })).toThrow(/SMTP_HOST/);
+  });
+});
