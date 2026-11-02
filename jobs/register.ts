@@ -37,6 +37,7 @@ export async function registerWorkers(boss: PgBoss, deps: WorkerDeps): Promise<v
     { batchSize: 1, localConcurrency: 4, ...polling },
     createEmailSendHandler({
       ...deps,
+      bookingEmailsEnabled: deps.env.BOOKING_EMAILS_ENABLED,
       branding: async () => emailBranding(await getInstanceSettings(deps.db), deps.env.APP_URL),
     }),
   );
