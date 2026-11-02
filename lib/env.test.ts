@@ -139,3 +139,16 @@ describe("email provider configuration", () => {
     expect(() => parseEnv({ ...base, SMTP_HOST: "" })).toThrow(/SMTP_HOST/);
   });
 });
+
+describe("provider-neutral email sender", () => {
+  it("accepts EMAIL_FROM without SMTP_FROM", () => {
+    expect(parseEnv({ ...base, SMTP_FROM: "", EMAIL_FROM: "Calendar <noreply@example.com>" }).EMAIL_FROM).toBe("Calendar <noreply@example.com>");
+  });
+  it("keeps SMTP_FROM compatibility and gives EMAIL_FROM precedence", () => {
+    expect(parseEnv(base).EMAIL_FROM).toBe(base.SMTP_FROM);
+    expect(parseEnv({ ...base, EMAIL_FROM: "new@example.com" }).EMAIL_FROM).toBe("new@example.com");
+  });
+  it("requires a sender with either provider", () => {
+    expect(() => parseEnv({ ...base, SMTP_FROM: "", EMAIL_PROVIDER: "resend", RESEND_API_KEY: "key" })).toThrow(/EMAIL_FROM/);
+  });
+});

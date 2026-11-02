@@ -1,4 +1,4 @@
-import type { Mailer } from "./transport";
+import type { Mailer } from "./types";
 
 /** HTTPS transport for hosts such as Railway Hobby that block outbound SMTP. */
 export function createResendMailer(apiKey: string, request: typeof fetch = fetch): Mailer {

@@ -5,14 +5,15 @@ Railway Hobby blocks outbound SMTP. Select the Resend HTTPS transport:
 ```text
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=<sending-access key for your verified domain>
-SMTP_FROM=MightyBase Calendar <noreply@calendar.mightybasecrm.com>
+EMAIL_FROM=MightyBase Calendar <noreply@calendar.mightybasecrm.com>
 BOOKING_EMAILS_ENABLED=false
 SIGNUP_MODE=invite_only
 WORKER_MODE=inline
 ```
 
-SMTP_FROM is the shared sender setting for both providers; no SMTP server,
-username or password is needed when EMAIL_PROVIDER=resend. Keep secrets in
+EMAIL_FROM is the provider-neutral sender setting. SMTP_FROM remains a legacy
+fallback for existing deployments. No SMTP server, username or password is
+needed when EMAIL_PROVIDER=resend. Keep secrets in
 Railway Variables, never in Git. Existing deployments default to SMTP and retain
 their previous email behavior.
 

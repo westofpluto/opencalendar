@@ -54,7 +54,9 @@ const baseSchema = z.object({
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
   SMTP_SECURE: booleanish(false),
-  SMTP_FROM: z.string().min(3),
+  EMAIL_FROM: z.preprocess(emptyToUndefined, z.string().min(3).optional()),
+  /** Legacy alias retained for existing deployments and Docker Compose. */
+  SMTP_FROM: z.preprocess(emptyToUndefined, z.string().default("")),
 
   GOOGLE_CLIENT_ID: optionalString,
   GOOGLE_CLIENT_SECRET: optionalString,
@@ -125,6 +127,9 @@ const baseSchema = z.object({
 });
 
 const schema = baseSchema.superRefine((env, ctx) => {
+  if (!env.EMAIL_FROM && env.SMTP_FROM.length < 3) {
+    ctx.addIssue({ code: "custom", path: ["EMAIL_FROM"], message: "is required (SMTP_FROM is accepted as a legacy alias)" });
+  }
   if (env.EMAIL_PROVIDER === "smtp" && !env.SMTP_HOST) {
     ctx.addIssue({ code: "custom", path: ["SMTP_HOST"], message: "is required for EMAIL_PROVIDER=smtp" });
   }
@@ -148,6 +153,8 @@ type RawEnv = z.infer<typeof schema>;
 export type OAuthClient = { clientId: string; clientSecret: string };
 
 export type Env = RawEnv & {
+  /** Resolved provider-neutral sender; EMAIL_FROM takes precedence over SMTP_FROM. */
+  EMAIL_FROM: string;
   oauth: {
     google: OAuthClient | null;
     microsoft: (OAuthClient & { tenantId: string }) | null;
@@ -180,6 +187,7 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   const microsoft = pair(env.MICROSOFT_CLIENT_ID, env.MICROSOFT_CLIENT_SECRET);
   return {
     ...env,
+    EMAIL_FROM: env.EMAIL_FROM ?? env.SMTP_FROM,
     oauth: {
       google: pair(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET),
       microsoft: microsoft ? { ...microsoft, tenantId: env.MICROSOFT_TENANT_ID } : null,

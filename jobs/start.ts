@@ -1,8 +1,7 @@
 import type { PgBoss } from "pg-boss";
 import { createDatabase } from "@/db/client";
 import { cipherFromEnv } from "@/lib/crypto/encryption";
-import { createResendMailer } from "@/lib/email/resend";
-import { createSmtpMailer } from "@/lib/email/transport";
+import { createMailer } from "@/lib/email/factory";
 import type { Env } from "@/lib/env";
 import { startBoss } from "@/lib/jobs/boss";
 import { logger } from "@/lib/logger";
@@ -12,12 +11,13 @@ export type RunningWorker = { boss: PgBoss; stop: () => Promise<void> };
 
 /** Starts the pg-boss worker role with all consumers. Used by worker.ts and WORKER_MODE=inline. */
 export async function startWorker(env: Env): Promise<RunningWorker> {
+  const mailer = await createMailer(env);
   const { db, pool } = createDatabase(env.DATABASE_URL, 3);
   const boss = await startBoss(env.DATABASE_URL, "worker");
   await registerWorkers(boss, {
     db,
-    mailer: env.EMAIL_PROVIDER === "resend" ? createResendMailer(env.RESEND_API_KEY!) : createSmtpMailer(env),
-    from: env.SMTP_FROM,
+    mailer,
+    from: env.EMAIL_FROM,
     cipher: cipherFromEnv(env),
     env,
   });
