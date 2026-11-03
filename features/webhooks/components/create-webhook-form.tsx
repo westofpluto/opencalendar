@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { FormField } from "@/components/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { createWebhookAction, type WebhookActionState } from "../server/actions";
+import { useWebhookSecrets } from "./webhook-secrets";
 import { SecretNotice } from "./secret-notice";
 import { TriggerCheckboxes } from "./trigger-checkboxes";
 
@@ -29,6 +30,10 @@ export function CreateWebhookForm({ eventTypes, allowPrivate, action: override }
     override ?? createWebhookAction,
     initial,
   );
+  const publishSecret = useWebhookSecrets()?.publish;
+  useEffect(() => {
+    if (state.secret && state.webhookId && publishSecret) publishSecret(state.webhookId, state.secret);
+  }, [state.secret, state.webhookId, publishSecret]);
   const [eventTypeId, setEventTypeId] = useState(ALL_EVENT_TYPES);
   // A successful create resets the form (React resets uncontrolled fields); do the same for the select.
   const [seenState, setSeenState] = useState(state);
@@ -39,6 +44,7 @@ export function CreateWebhookForm({ eventTypes, allowPrivate, action: override }
   const errors = state.fieldErrors ?? {};
   return (
     <form action={action} className="flex flex-col gap-3">
+      {!publishSecret && state.secret && <SecretNotice key={state.secret} secret={state.secret} />}
       <FormField
         label="Endpoint URL"
         htmlFor="webhook-url"
@@ -92,7 +98,7 @@ export function CreateWebhookForm({ eventTypes, allowPrivate, action: override }
           <AlertDescription>{state.message}</AlertDescription>
         </Alert>
       )}
-      {state.secret && <SecretNotice secret={state.secret} />}
+
       <Button type="submit" disabled={pending} className="self-start">
         {pending && <Spinner />}
         {pending ? "Creating…" : "Create webhook"}

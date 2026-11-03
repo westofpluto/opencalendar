@@ -59,6 +59,7 @@ export function WebhookCard({
             <WebhookMenu webhookId={hook.id} url={hook.url} triggers={hook.triggers} updateTriggers={actions.updateTriggers} remove={actions.remove} />
           </div>
         </div>
+        <SecretRow webhookId={hook.id} url={hook.url} scopeLabel={scopeLabel} roll={actions.roll} ping={actions.ping} />
         <ul aria-label={`Triggers of ${hook.url}`} className="flex flex-wrap gap-1.5 md:pl-5">
           {hook.triggers.map((trigger) => (
             <li key={trigger} className="rounded-full bg-muted px-2 py-0.5 font-mono text-xs text-foreground">
@@ -66,7 +67,6 @@ export function WebhookCard({
             </li>
           ))}
         </ul>
-        <SecretRow url={hook.url} scopeLabel={scopeLabel} roll={actions.roll} ping={actions.ping} />
       </Card>
     </li>
   );

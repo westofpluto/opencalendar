@@ -54,9 +54,9 @@ export async function createTeamWebhookAction(teamId: string, _prev: WebhookActi
   const checked = await checkWebhookUrl(parsed.data.url, { allowPrivate: env.WEBHOOK_ALLOW_PRIVATE });
   if (!checked.ok) return { status: "error", message: "Please fix the highlighted fields.", fieldErrors: { url: checked.message } };
   try {
-    const { secret } = await createTeamWebhook(getDb(), cipherFromEnv(env), user.id, idSchema.parse(teamId), { ...parsed.data, url: checked.url });
+    const { id, secret } = await createTeamWebhook(getDb(), cipherFromEnv(env), user.id, idSchema.parse(teamId), { ...parsed.data, url: checked.url });
     revalidatePath(pathOf(teamId));
-    return { status: "success", message: "Webhook created. Copy the signing secret now; it won't be shown again.", secret };
+    return { status: "success", message: "Webhook created. Copy the signing secret beside the new webhook above; it won't be shown again.", secret, webhookId: id };
   } catch (error) {
     return failure(error);
   }
