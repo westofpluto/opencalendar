@@ -115,6 +115,26 @@ describe("Google Calendar adapter (INT-002, INT-008)", () => {
     expect(googleEventId(event.uid)).toMatch(/^[0-9a-v]{5,1024}$/);
   });
 
+  it("retries pending Meet creation and recovers its link from the existing event", async () => {
+    let inserts = 0;
+    const api = fakeApi({
+      [`POST ${G}/calendars/`]: () => ++inserts === 1
+        ? json({ id: "existing", conferenceData: { createRequest: { status: { statusCode: "pending" } } } })
+        : json({}, 409),
+      [`GET ${G}/calendars/`]: () => json({ id: "existing", conferenceData: { entryPoints: [{ entryPointType: "video", uri: "https://meet.google.com/ready" }] } }),
+    });
+    const input = { ...event, conference: "google_meet" as const };
+    await expect(googleCalendar.createEvent!(ctx(api.fetch), "c", input)).rejects.toMatchObject({ kind: "transient" });
+    await expect(googleCalendar.createEvent!(ctx(api.fetch), "c", input)).resolves.toEqual({ externalId: "existing", meetingUrl: "https://meet.google.com/ready" });
+  });
+
+  it("reports a failed Meet request instead of marking it synced without a link", async () => {
+    const api = fakeApi({
+      [`POST ${G}/calendars/`]: () => json({ id: "existing", conferenceData: { createRequest: { status: { statusCode: "failure" } } } }),
+    });
+    await expect(googleCalendar.createEvent!(ctx(api.fetch), "c", { ...event, conference: "google_meet" })).rejects.toMatchObject({ kind: "invalid" });
+  });
+
   it("treats a 409 on create as an earlier attempt and reads the event back", async () => {
     const api = fakeApi({
       [`POST ${G}/calendars/`]: () => json({ error: "duplicate" }, 409),

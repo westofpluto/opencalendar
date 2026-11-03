@@ -237,7 +237,6 @@ test("locations: invitee picks phone or Jitsi; details show on the confirmation 
   await page.getByRole("link", { name: "Intro call", exact: true }).click();
   for (const kind of ["Jitsi Meet", "Phone call (you call the invitee)"]) {
     await pickOption(page, page.getByLabel("Add a location"), kind);
-    await page.getByRole("button", { name: "Add", exact: true }).click();
   }
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByText("Event type saved.")).toBeVisible();
@@ -281,4 +280,21 @@ test("metrics endpoint requires its token (NFR-010)", async ({ request }) => {
   const text = await res.text();
   expect(text).toContain("# TYPE opencalendar_slot_request_duration_seconds histogram");
   expect(text).toContain("opencalendar_bookings{status=");
+});
+
+
+test("selecting Google Meet adds and saves the location without a separate Add click", async ({ page }) => {
+  await signUpVerified(page, "Meet Host", "meethost");
+  await createEventType(page, "Meet consultation");
+  await page.getByRole("link", { name: "Meet consultation", exact: true }).click();
+  await pickOption(page, page.getByLabel("Add a location"), "Google Meet");
+  const location = page.getByRole("listitem").filter({ hasText: "Google Meet" });
+  await expect(location.getByRole("button", { name: "Remove", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Event type saved.")).toBeVisible();
+  await page.reload();
+  await expect(location.getByRole("button", { name: "Remove", exact: true })).toBeVisible();
+  await location.getByRole("button", { name: "Remove", exact: true }).click();
+  await pickOption(page, page.getByLabel("Add a location"), "Google Meet");
+  await expect(location).toHaveCount(1);
 });
