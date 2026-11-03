@@ -158,10 +158,28 @@ jobs:
           tags: opencalendar:scan
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+      # Bypass the install script's get.trivy.dev download endpoint.
+      - name: Install pinned Trivy from GitHub release
+        if: matrix.arch == 'amd64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/trivy-bin"
+          archive="$RUNNER_TEMP/trivy_0.70.0_Linux-64bit.tar.gz"
+          curl --fail --show-error --location --retry 3 --retry-all-errors \
+            --connect-timeout 15 --max-time 180 \
+            https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz \
+            --output "$archive"
+          echo "8b4376d5d6befe5c24d503f10ff136d9e0c49f9127a4279fd110b727929a5aa9  $archive" | sha256sum --check --strict
+          mkdir -p "$install_dir"
+          tar -xzf "$archive" -C "$install_dir" trivy
+          "$install_dir/trivy" --version
+          echo "$install_dir" >> "$GITHUB_PATH"
       - name: Scan image (fails on high/critical)
         if: matrix.arch == 'amd64'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          skip-setup-trivy: true
           image-ref: opencalendar:scan
           severity: HIGH,CRITICAL
           ignore-unfixed: true
