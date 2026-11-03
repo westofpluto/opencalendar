@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import type { WebhookActionState } from "../server/actions";
+import { useWebhookSecrets } from "./webhook-secrets";
 import { SecretNotice } from "./secret-notice";
 import { TriggerCheckboxes } from "./trigger-checkboxes";
 
@@ -141,14 +142,17 @@ export function WebhookMenu({
  * The signing secret row: masked secret, scope, "Roll secret…" (asks first: the old secret stops
  * working at once) and a test ping. Results show under the row; a new secret is shown once.
  */
-export function SecretRow({ url, scopeLabel, roll, ping }: { url: string; scopeLabel: string; roll: BoundAction; ping: BoundAction }) {
+export function SecretRow({ webhookId, url, scopeLabel, roll, ping }: { webhookId: string; url: string; scopeLabel: string; roll: BoundAction; ping: BoundAction }) {
+  const sharedSecrets = useWebhookSecrets();
   const [rollState, rollAction, rolling] = useActionState<WebhookActionState>(roll, initial);
   const [pingState, pingAction, pinging] = useActionState<WebhookActionState>(ping, initial);
   const rollForm = useRef<HTMLFormElement>(null);
   const [confirming, setConfirming] = useState(false);
+  const secret = rollState.secret ?? sharedSecrets?.secrets[webhookId];
   const small = "h-11 rounded-md px-3 text-[13px] md:h-8";
   return (
     <div className="flex flex-col gap-2">
+      {secret && <SecretNotice key={secret} secret={secret} />}
       <div className="flex flex-col gap-2 rounded-md bg-background px-3 py-2.5 text-[13px] md:flex-row md:items-center md:gap-4 md:pl-5">
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
           <span className="text-muted-foreground">Signing secret</span>
@@ -195,7 +199,6 @@ export function SecretRow({ url, scopeLabel, roll, ping }: { url: string; scopeL
         </AlertDialogContent>
       </AlertDialog>
       <Message state={rollState} />
-      {rollState.secret && <SecretNotice secret={rollState.secret} />}
       <Message state={pingState} />
     </div>
   );

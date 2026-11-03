@@ -16,7 +16,7 @@ import { checkWebhookUrl } from "./url";
 const PATH = "/settings/webhooks";
 
 /** `secret` is only set right after creating a webhook or rolling its secret (shown once). */
-export type WebhookActionState = ActionState & { secret?: string };
+export type WebhookActionState = ActionState & { secret?: string; webhookId?: string };
 
 const MESSAGES: Record<string, string> = {
   NOT_FOUND: "That webhook no longer exists.",
@@ -48,9 +48,9 @@ export async function createWebhookAction(_prev: WebhookActionState, formData: F
   const checked = await checkWebhookUrl(parsed.data.url, { allowPrivate: env.WEBHOOK_ALLOW_PRIVATE });
   if (!checked.ok) return { status: "error", message: "Please fix the highlighted fields.", fieldErrors: { url: checked.message } };
   try {
-    const { secret } = await createWebhook(getDb(), cipherFromEnv(env), user.id, { ...parsed.data, url: checked.url });
+    const { id, secret } = await createWebhook(getDb(), cipherFromEnv(env), user.id, { ...parsed.data, url: checked.url });
     revalidatePath(PATH);
-    return { status: "success", message: "Webhook created. Copy the signing secret now; it won't be shown again.", secret };
+    return { status: "success", message: "Webhook created. Copy the signing secret beside the new webhook above; it won't be shown again.", secret, webhookId: id };
   } catch (error) {
     return failure(error);
   }

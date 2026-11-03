@@ -1,3 +1,4 @@
+import { WebhookSecretsProvider } from "@/features/webhooks/components/webhook-secrets";
 import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import { HEADER_BUTTON_CLASS, PAGE_CLASS, PageHeader } from "@/components/page-header";
@@ -32,6 +33,7 @@ export default async function WebhooksPage() {
   const prefs = { locale: profile?.locale ?? "en", timeZone: profile?.timeZone ?? "UTC", hour12: profile?.timeFormat === 12 };
 
   return (
+    <WebhookSecretsProvider>
     <div className={PAGE_CLASS}>
       <PageHeader
         title="Webhooks"
@@ -81,5 +83,6 @@ export default async function WebhooksPage() {
         </Card>
       </section>
     </div>
+    </WebhookSecretsProvider>
   );
 }

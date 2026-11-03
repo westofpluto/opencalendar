@@ -1,3 +1,4 @@
+import { WebhookSecretsProvider } from "@/features/webhooks/components/webhook-secrets";
 import { getDb } from "@/db/client";
 import { getProfile } from "@/features/settings/server/service";
 import { requestTime } from "@/lib/clock";
@@ -27,6 +28,7 @@ export async function TeamWebhooksPanel({ teamId, userId }: { teamId: string; us
   const [overview, profile] = await Promise.all([teamWebhookOverview(db, userId, teamId, now), getProfile(db, userId)]);
   const prefs = { locale: profile?.locale ?? "en", timeZone: profile?.timeZone ?? "UTC", hour12: profile?.timeFormat === 12 };
   return (
+    <WebhookSecretsProvider>
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h2 className="text-base font-semibold">Webhooks</h2>
@@ -55,5 +57,6 @@ export async function TeamWebhooksPanel({ teamId, userId }: { teamId: string; us
         <CreateWebhookForm allowPrivate={getEnv().WEBHOOK_ALLOW_PRIVATE} action={createTeamWebhookAction.bind(null, teamId)} />
       </div>
     </div>
+    </WebhookSecretsProvider>
   );
 }
