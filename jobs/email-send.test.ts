@@ -96,6 +96,6 @@ describe("CRMCore-owned booking communications", () => {
     const workflow = sealEmail(cipher, { to: "a@b.test", template: "workflow", props: { subject: "Reminder", body: "Soon", bookingUrl: "https://x.test/booking" } });
     await handler([job(workflow), job(magic(), "job-2")]);
     expect(mailer.send).toHaveBeenCalledOnce();
-    expect(mailer.send).toHaveBeenCalledWith(expect.objectContaining({ subject: expect.stringContaining("Sign in") }));
+    expect(mailer.send).toHaveBeenCalledWith(expect.objectContaining({ to: "a@b.test", subject: "Your sign in link", html: expect.stringContaining("https://x.test/m?token=secret-token") }));
   });
 });
