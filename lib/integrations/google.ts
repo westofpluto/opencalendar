@@ -31,7 +31,7 @@ function eventBody(e: CalendarEventInput) {
   };
 }
 
-function meetingUrl(json: { hangoutLink?: string; conferenceData?: { entryPoints?: { entryPointType?: string; uri?: string }[] } }) {
+function meetingUrl(json: { hangoutLink?: string; conferenceData?: { createRequest?: { status?: { statusCode?: string } }; entryPoints?: { entryPointType?: string; uri?: string }[] } }) {
   return json.hangoutLink ?? json.conferenceData?.entryPoints?.find((p) => p.entryPointType === "video")?.uri;
 }
 
@@ -116,7 +116,14 @@ export const googleCalendar: CalendarAdapter<Cred> = {
       res = await ctx.fetch(`${API}/calendars/${enc(calendarId)}/events/${id}`, { headers: bearer(ctx.credential) });
     }
     const json = (await (await ensureOk(res, "Google events.insert")).json()) as Parameters<typeof meetingUrl>[0] & { id: string };
-    return { externalId: json.id, meetingUrl: meetingUrl(json) };
+    const link = meetingUrl(json);
+    if (e.conference === "google_meet" && !link) {
+      const failed = json.conferenceData?.createRequest?.status?.statusCode === "failure";
+      // Google creates conferences asynchronously. Retrying the deterministic event id
+      // reads the existing event after a 409, rather than creating a duplicate.
+      throw new IntegrationError(failed ? "invalid" : "transient", failed ? "Google Meet conference creation failed" : "Google Meet link is not ready; retrying calendar sync");
+    }
+    return { externalId: json.id, meetingUrl: link };
   },
 
   async updateEvent(ctx, calendarId, externalId, e) {

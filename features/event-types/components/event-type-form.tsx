@@ -72,7 +72,6 @@ export function EventTypeFormView(props: {
   const errors = state.fieldErrors ?? {};
   const set = (patch: Partial<EventTypeFormInput>) => setForm((f) => ({ ...f, ...patch }));
   const [calendarSettings, setCalendarSettings] = useState<CalendarSettings>(props.calendarSettings);
-  const [newLocation, setNewLocation] = useState<LocationKind | "">("");
   const payload = { ...form, minNoticeMinutes: notice.value * NOTICE_UNITS[notice.unit], calendarSettings };
   const setLocation = (index: number, value: string | null) =>
     set({ locations: form.locations.map((l, i) => (i === index ? { ...l, value } : l)) });
@@ -325,7 +324,7 @@ export function EventTypeFormView(props: {
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">Locations</h2>
         <p className="text-sm text-muted-foreground">
-          Add one or more. With several, the invitee chooses when booking.
+          Selecting a location adds it immediately. With several, the invitee chooses when booking.
         </p>
         {errors.locations && (
           <Alert variant="destructive">
@@ -378,8 +377,15 @@ export function EventTypeFormView(props: {
         </ul>
         <div className="flex items-end gap-2">
           <FormField label="Add a location" htmlFor="newLocation">
-            {/* "" (Radix's empty value) shows the placeholder again after "Add". */}
-            <Select value={newLocation} onValueChange={(value) => setNewLocation(value as LocationKind)}>
+            <Select
+              value=""
+              onValueChange={(value) => {
+                const kind = value as LocationKind;
+                setForm((current) => current.locations.some((loc) => loc.kind === kind)
+                  ? current
+                  : { ...current, locations: [...current.locations, { kind, value: null }] });
+              }}
+            >
               <SelectTrigger id="newLocation" className="w-72">
                 <SelectValue placeholder="Choose…" />
               </SelectTrigger>
@@ -392,18 +398,7 @@ export function EventTypeFormView(props: {
               </SelectContent>
             </Select>
           </FormField>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={!newLocation}
-            onClick={() => {
-              if (!newLocation) return;
-              set({ locations: [...form.locations, { kind: newLocation, value: null }] });
-              setNewLocation("");
-            }}
-          >
-            Add
-          </Button>
+
         </div>
       </section>
 
