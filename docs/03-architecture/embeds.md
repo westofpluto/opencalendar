@@ -100,6 +100,7 @@ also gets `embed=1`.
 | `theme` | `light`, `dark`, `auto` (default) | Color scheme of the booking page. `auto` follows the visitor's OS setting |
 | `brand` | hex color, `#` optional (`"#0f766e"`) | Brand/primary color. Anything that is not a 6-digit hex value is ignored |
 | `hideDetails` | `true` | Hides the event details column |
+| `dateSteps` | `true` | Shows the month grid first, then replaces it with the selected day’s times and a Back to calendar button |
 | `layout` | `month` (default), `week`, `column` | Initial booking page layout; the visitor can switch (see [Layouts](#layouts)). Other values are dropped and reported in the console |
 | `name`, `email`, `notes` | string | Prefill the booking form |
 | `duration` | minutes | Preselect one of the event's durations |

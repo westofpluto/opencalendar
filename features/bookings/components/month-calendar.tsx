@@ -32,6 +32,7 @@ type Props = {
   onChangeMonth: (delta: number) => void;
   onSelectDate: (key: string) => void;
   onChooseSlot: (slot: Slot) => void;
+  onBackToDates?: () => void;
 };
 
 /**
@@ -53,18 +54,32 @@ export function MonthCalendar(props: Props) {
   // When the times sit below the calendar (phones, narrow embeds, column layout), picking a day
   // brings them into view; otherwise they would appear off screen with nothing visibly changing.
   const timesRef = useRef<HTMLElement>(null);
+  const backButton = useRef<HTMLButtonElement>(null);
+  const chosenDay = useRef<HTMLButtonElement>(null);
+  const restoreDateFocus = useRef(false);
+  const dateSteps = Boolean(props.onBackToDates);
+  const showTimesStep = dateSteps && selectedDate !== null;
+  const selectedSlots = selectedDate ? byDate.get(selectedDate) ?? [] : [];
   const revealPending = useRef(false);
   useEffect(() => {
+    if (!selectedDate && restoreDateFocus.current) {
+      restoreDateFocus.current = false;
+      chosenDay.current?.focus({ preventScroll: true });
+    }
     const el = timesRef.current;
     if (!revealPending.current || !el || !selectedDate) return;
     revealPending.current = false;
-    if (shouldReveal(el.getBoundingClientRect(), window.innerHeight)) el.scrollIntoView({ block: "start", behavior: revealBehavior() });
-  }, [selectedDate]);
+    if (dateSteps) {
+      backButton.current?.focus({ preventScroll: true });
+    } else if (shouldReveal(el.getBoundingClientRect(), window.innerHeight)) {
+      el.scrollIntoView({ block: "start", behavior: revealBehavior() });
+    }
+  }, [dateSteps, selectedDate]);
 
   return (
     // Side by side once the panel (not the window) is wide enough; see BookingWidget.
-    <div className={cn("grid gap-4 @xl/panel:gap-6", !props.stacked && "@xl/panel:grid-cols-[1fr_220px]")}>
-      <section aria-label="Choose a date" aria-busy={props.busy}>
+    <div className={cn("grid gap-4 @xl/panel:gap-6", !dateSteps && !props.stacked && "@xl/panel:grid-cols-[1fr_220px]")}>
+      <section hidden={showTimesStep} aria-label="Choose a date" aria-busy={props.busy}>
         <div className="mb-2 flex items-center justify-between @xl/panel:mb-4">
           <h2 className="font-medium" aria-live="polite">
             {monthLabel}
@@ -100,7 +115,8 @@ export function MonthCalendar(props: Props) {
                 disabled={!available}
                 aria-pressed={selected}
                 aria-label={`${label}${available ? "" : ", no times available"}`}
-                onClick={() => {
+                onClick={(event) => {
+                  if (dateSteps) chosenDay.current = event.currentTarget;
                   revealPending.current = true;
                   props.onSelectDate(key);
                 }}
@@ -132,19 +148,36 @@ export function MonthCalendar(props: Props) {
         )}
         {props.preferences}
       </section>
-      <section ref={timesRef} aria-label="Choose a time" className="scroll-mt-4">
+      <section ref={timesRef} hidden={dateSteps && !showTimesStep} aria-label="Choose a time" className="scroll-mt-4">
         {selectedDate ? (
           <>
-            <h2 className="mb-3 text-sm font-medium">{formatDateLong(byDate.get(selectedDate)?.[0]?.start ?? props.nowMs, prefs)}</h2>
+            {props.onBackToDates && (
+              <Button ref={backButton} type="button" variant="ghost" className="mb-2" onClick={() => {
+                restoreDateFocus.current = true;
+                props.onBackToDates?.();
+              }}>
+                <ChevronLeft className="size-4" aria-hidden /> Back to calendar
+              </Button>
+            )}
+            <h2 className="mb-3 text-sm font-medium">
+              {dateSteps
+                ? formatDateLong(Date.parse(`${selectedDate}T12:00:00Z`), { ...prefs, timeZone: "UTC" })
+                : formatDateLong(selectedSlots[0]?.start ?? props.nowMs, prefs)}
+            </h2>
+            {showTimesStep && selectedSlots.length === 0 && (
+              <p className="text-sm text-muted-foreground" role="status">
+                {props.loading ? "Loading…" : props.loadError ?? "No times available for this date."}
+              </p>
+            )}
             {/* Below the calendar: a compact grid, no scroll box inside the scrolling page.
                 Beside it: a column that scrolls within the calendar's height. */}
             <ul
               className={cn(
                 "grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2",
-                !props.stacked && "@xl/panel:flex @xl/panel:max-h-96 @xl/panel:flex-col @xl/panel:overflow-y-auto",
+                !dateSteps && !props.stacked && "@xl/panel:flex @xl/panel:max-h-96 @xl/panel:flex-col @xl/panel:overflow-y-auto",
               )}
             >
-              {(byDate.get(selectedDate) ?? []).map((s) => (
+              {selectedSlots.map((s) => (
                 <li key={s.start}>
                   <SlotButton slot={s} prefs={prefs} seated={props.seated} className="w-full" onChoose={props.onChooseSlot} />
                 </li>
