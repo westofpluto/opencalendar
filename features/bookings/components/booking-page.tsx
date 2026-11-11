@@ -81,6 +81,7 @@ export async function BookingPageView({ target, query }: { target: BookingTarget
           initialLayout={linkParams.layout}
           weekStart={weekStart}
           hideDetails={embed?.hideDetails}
+          dateSteps={Boolean(embed) && one(query.dateSteps) === "1"}
           form={{
             username: target.kind === "team" ? "" : target.basePath.slice(1),
             ...(target.team && { team: target.team.slug }),

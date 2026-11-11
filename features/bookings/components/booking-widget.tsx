@@ -57,6 +57,7 @@ export type BookingWidgetProps = {
   weekStart?: number;
   /** Embed mode hides event details when asked (EMB-004). */
   hideDetails?: boolean;
+  dateSteps?: boolean;
   form: BookingFormConfig;
 };
 
@@ -109,7 +110,7 @@ export function BookingWidget(props: BookingWidgetProps) {
   const requestSeq = useRef(0);
   const idempotencyKey = useRef("");
   const narrow = useNarrowScreen();
-  const shown = effectiveLayout(layout, narrow);
+  const shown = props.dateSteps ? "month" : effectiveLayout(layout, narrow);
   const hostWeekStart = normalizeWeekStart(props.weekStart);
 
   // Browser-only defaults (BKG-003): detected zone, locale clock convention.
@@ -336,7 +337,7 @@ export function BookingWidget(props: BookingWidgetProps) {
             />
           ) : (
             <>
-              {!narrow && (
+              {!narrow && !props.dateSteps && (
                 <div className="mb-4 flex justify-end">
                   <LayoutSwitcher value={layout} onChange={changeLayout} />
                 </div>
@@ -382,6 +383,7 @@ export function BookingWidget(props: BookingWidgetProps) {
                   seated={props.seated}
                   stacked={shown === "column"}
                   nowMs={nowMs}
+                  onBackToDates={props.dateSteps ? () => setSelectedDate(null) : undefined}
                   preferences={preferences}
                   onChangeMonth={(delta) => {
                     setMonth(shiftMonth(month, delta));
